@@ -45,7 +45,8 @@ export type TacticalRole =
   | "Sniper"
   | "TwoWay"
   | "StayAtHomeD"
-  | "OffensiveD";
+  | "OffensiveD"
+  | "Enforcer";
 
 // ---------- Lag & uppställning ----------
 
