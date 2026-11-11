@@ -87,3 +87,76 @@ export const ironWolves: Team = {
     },
   },
 };
+
+// ---------- Snabbgenererade lag ----------
+
+const clampRating = (x: number) => Math.min(20, Math.max(1, Math.round(x)));
+
+/**
+ * Bygger ett helt lag från en grundnivå (1–20). Kedja 1 är bäst och kedja 4 sämst.
+ * names = 20 namn i ordning: 12 forwards (kedja 1–4, C/LW/RW), 6 backar, 2 målvakter.
+ */
+function buildTeam(id: string, name: string, level: number, names: string[]): Team {
+  const nm = (i: number) => names[i] ?? `Spelare ${i}`;
+  const roster: Player[] = [];
+  const lineOffsets = [2, 0, -2, -4];
+  const pairOffsets = [1, -1, -3];
+  const positions: Position[] = ["C", "LW", "RW"];
+  const posKey = ["c", "lw", "rw"];
+
+  lineOffsets.forEach((off, l) => {
+    positions.forEach((pos, k) => {
+      const v = clampRating(level + off - k * 0.5);
+      roster.push(p(`${id}-${posKey[k]}${l + 1}`, nm(l * 3 + k), pos, v, v * 9));
+    });
+  });
+  pairOffsets.forEach((off, pr) => {
+    for (let k = 0; k < 2; k++) {
+      const v = clampRating(level + off);
+      roster.push(p(`${id}-d${pr * 2 + k + 1}`, nm(12 + pr * 2 + k), "D", v, v * 9));
+    }
+  });
+  roster.push(p(`${id}-g1`, nm(18), "G", clampRating(level + 1), (level + 1) * 9));
+  roster.push(p(`${id}-g2`, nm(19), "G", clampRating(level - 5), (level - 5) * 9));
+
+  const line = (n: number, c: TacticalRole, lw: TacticalRole, rw: TacticalRole) => ({
+    C: a(`${id}-c${n}`, c),
+    LW: a(`${id}-lw${n}`, lw),
+    RW: a(`${id}-rw${n}`, rw),
+  });
+  return {
+    id,
+    name,
+    roster,
+    lineup: {
+      goalie: `${id}-g1`,
+      lines: [
+        line(1, "Playmaker", "Sniper", "NetFrontScreen"),
+        line(2, "TwoWay", "Sniper", "TwoWay"),
+        line(3, "TwoWay", "TwoWay", "NetFrontScreen"),
+        line(4, "TwoWay", "TwoWay", "TwoWay"),
+      ],
+      pairs: [
+        { LD: a(`${id}-d1`, "OffensiveD"), RD: a(`${id}-d2`, "StayAtHomeD") },
+        { LD: a(`${id}-d3`, "StayAtHomeD"), RD: a(`${id}-d4`, "OffensiveD") },
+        { LD: a(`${id}-d5`, "StayAtHomeD"), RD: a(`${id}-d6`, "StayAtHomeD") },
+      ],
+      pp1: { ...line(1, "Playmaker", "Sniper", "NetFrontScreen"), LD: a(`${id}-d1`, "OffensiveD"), RD: a(`${id}-d2`, "OffensiveD") },
+      pk1: { C: a(`${id}-c3`, "TwoWay"), W: a(`${id}-lw3`, "TwoWay"), LD: a(`${id}-d3`, "StayAtHomeD"), RD: a(`${id}-d5`, "StayAtHomeD") },
+    },
+  };
+}
+
+export const frostGiants: Team = buildTeam("fg", "Frost Giants", 12, [
+  "Björn Is", "Torsten Frost", "Gunnar Kyl", "Harald Snö", "Ragnar Hagel", "Sigurd Rim",
+  "Ulrik Vinter", "Valter Tjäle", "Yngve Is", "Zeb Kall", "Åke Dimma", "Östen Blåst",
+  "Tage Glaciär", "Rune Frys", "Stig Kalv", "Arne Isberg", "Olle Snöfall", "Knut Tundra",
+  "Magnus Norr", "Ingvar Rimfrost",
+]);
+
+export const polarBears: Team = buildTeam("pb", "Polar Bears", 9, [
+  "Bertil Björn", "Cecil Tass", "Dag Pälsen", "Egil Vit", "Folke Klo", "Gösta Nos",
+  "Henning Ram", "Isak Vak", "Jarl Hibe", "Kjell Ismassa", "Lennart Gry", "Melker Dvala",
+  "Nils Packis", "Orvar Skarp", "Pontus Bjässe", "Roland Tung", "Sixten Sälj", "Torbjörn Trav",
+  "Urban Vakt", "Vilgot Mur",
+]);

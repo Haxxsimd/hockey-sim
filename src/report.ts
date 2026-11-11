@@ -5,6 +5,8 @@ interface Ctx {
   skytt: string;
   målvakt: string;
   screener: string;
+  lag: string; // laget som hamnade i numerärt underläge
+  pplag: string; // laget i överläge
 }
 
 // ---------- Textvarianter (mallsträngar) ----------
@@ -63,11 +65,24 @@ const GOAL_PLAIN = [
   "MÅL! {skytt} sätter pucken i mål efter en vass kontring – {målvakt} kommer för sent!",
 ];
 
+const PENALTY = [
+  "Utvisning! {skytt} åker på 2 minuter för hårt spel – {pplag} får powerplay!",
+  "Domaren pekar mot utvisningsbåset: {skytt} ({lag}) tvingas av isen. Dags för powerplay för {pplag}!",
+  "{skytt} tappar tålamodet och tar en onödig utvisning. {pplag} i överläge i två minuter!",
+  "Visslan går! {skytt} sitter av två minuter, och {lag} får spela med en man färre.",
+];
+
+const PP_GOAL_NOTE = [
+  " Powerplay-mål – utvisningen avbryts!",
+  " Överlägesmål! {lag} slipper straffet i förtid.",
+  " Powerplay sitter! Utvisningstiden är över.",
+];
+
 // ---------- Hjälpfunktioner ----------
 
 /** Fyll i en mall: byt ut {nyckel} mot värden ur ctx. */
 function fill(template: string, ctx: Ctx): string {
-  return template.replace(/\{(skytt|målvakt|screener)\}/g, (_, key: keyof Ctx) => ctx[key]);
+  return template.replace(/\{(skytt|målvakt|screener|lag|pplag)\}/g, (_, key: keyof Ctx) => ctx[key]);
 }
 
 /**
@@ -83,8 +98,18 @@ function pick<T>(variants: readonly T[], seed: number, eventIndex: number, salt:
 }
 
 /** Beskriv en enskild händelse. */
-function describe(e: MatchEvent, i: number, seed: number, lookup: (id: string | undefined) => Player | undefined): string {
+function describe(
+  e: MatchEvent,
+  i: number,
+  seed: number,
+  lookup: (id: string | undefined) => Player | undefined,
+  teamNames: Record<"home" | "away", string>,
+): string {
+  // Vid "penalty" är e.side laget som blev utvisat; annars är e.side laget som anföll.
+  const other = e.side === "home" ? "away" : "home";
   const ctx: Ctx = {
+    lag: e.type === "penalty" ? teamNames[e.side] : teamNames[other],
+    pplag: e.type === "penalty" ? teamNames[other] : teamNames[e.side],
     skytt: lookup(e.playerId)?.name ?? "Okänd",
     målvakt: lookup(e.goalieId)?.name ?? "målvakten",
     screener: lookup(e.screenerId)?.name ?? "en forward",
@@ -92,6 +117,8 @@ function describe(e: MatchEvent, i: number, seed: number, lookup: (id: string | 
   const screened = e.screenerId !== undefined;
 
   switch (e.type) {
+    case "penalty":
+      return fill(pick(PENALTY, seed, i, 4), ctx);
     case "save":
       return fill(pick(screened ? SAVE_SCREENED : SAVE, seed, i, 1), ctx);
     case "rebound":
@@ -105,7 +132,8 @@ function describe(e: MatchEvent, i: number, seed: number, lookup: (id: string | 
         const pos = lookup(e.playerId)?.position;
         pool = pos === "D" ? GOAL_LONG : i % 2 === 0 ? GOAL_LONG : GOAL_PLAIN;
       }
-      return fill(pick(pool, seed, i, 3), ctx);
+      const text = fill(pick(pool, seed, i, 3), ctx);
+      return e.powerplay ? text + fill(pick(PP_GOAL_NOTE, seed, i, 5), ctx) : text;
     }
   }
 }
@@ -118,9 +146,12 @@ export function formatMatchReport(r: MatchResult, home: Team, away: Team): strin
 
   const lines = [`=== ${home.name} - ${away.name}  ${r.homeScore}-${r.awayScore}  (seed ${r.seed}) ===`, ""];
   r.events.forEach((e, i) => {
-    lines.push(`${String(e.minute).padStart(2, "0")}'  [${teamName(e.side)}] ${describe(e, i, r.seed, lookup)}`);
+    const tag = e.type === "penalty" ? "UTVISNING" : e.powerplay ? `${teamName(e.side)}, PP` : teamName(e.side);
+    lines.push(`${String(e.minute).padStart(2, "0")}'  [${tag}] ${describe(e, i, r.seed, lookup, { home: home.name, away: away.name })}`);
   });
   lines.push("", `Skott:      ${r.stats.home.shots} - ${r.stats.away.shots}`);
   lines.push(`Räddningar: ${r.stats.home.saves} - ${r.stats.away.saves}`);
+  lines.push(`Utvisningar: ${r.stats.home.penalties} - ${r.stats.away.penalties}`);
+  lines.push(`PP-mål:     ${r.stats.home.ppGoals} - ${r.stats.away.ppGoals}`);
   return lines.join("\n");
 }

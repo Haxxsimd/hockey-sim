@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ironWolves, northStars } from "./mock.js";
+import { frostGiants, ironWolves, northStars, polarBears } from "./mock.js";
 import type { Assignment, Team } from "./types.js";
 
 /** Plocka ut alla Assignment-objekt ur en uppställning. */
@@ -8,7 +8,7 @@ function allAssignments(t: Team): Assignment[] {
   return [...lines.flatMap((l) => Object.values(l)), ...pairs.flatMap((x) => Object.values(x)), ...Object.values(pp1), ...Object.values(pk1)];
 }
 
-describe.each([northStars, ironWolves])("mock-lag $name", (team) => {
+describe.each([northStars, ironWolves, frostGiants, polarBears])("mock-lag $name", (team) => {
   it("har 20 spelare med unika id", () => {
     expect(team.roster).toHaveLength(20);
     expect(new Set(team.roster.map((x) => x.id)).size).toBe(20);

@@ -97,17 +97,18 @@ export interface Team {
 
 export type Side = "home" | "away";
 
-export type MatchEventType = "goal" | "save" | "rebound";
+export type MatchEventType = "goal" | "save" | "rebound" | "penalty";
 
 /** En händelse i matchen, stämplad med minut (1–60). */
 export interface MatchEvent {
   minute: number;
-  side: Side; // vilket lag som anföll
+  side: Side; // vilket lag som anföll (vid "penalty": det lag som drog på sig utvisningen)
   type: MatchEventType;
-  playerId: PlayerId; // skytten (vid "rebound": returtagaren)
+  playerId: PlayerId; // skytten (vid "rebound": returtagaren, vid "penalty": den utvisade)
   goalieId?: PlayerId; // målvakten som försvarade (mål/räddning)
   screenerId?: PlayerId; // NetFrontScreen som skymde sikten, om någon
   isRebound?: boolean; // true om skottet var en retur
+  powerplay?: boolean; // true om det anfallande laget hade överläge (vid mål: utvisningen avbröts)
   text: string; // enkel standardbeskrivning (report.ts gör ett mer varierat referat)
 }
 
@@ -115,6 +116,8 @@ export interface TeamStats {
   shots: number; // skott på mål (inkl. returer)
   saves: number; // räddningar som laget gjorde
   goals: number;
+  penalties: number; // utvisningar som laget drog på sig
+  ppGoals: number; // mål i powerplay
 }
 
 export interface MatchResult {
