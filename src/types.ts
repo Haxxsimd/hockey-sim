@@ -92,3 +92,32 @@ export interface Team {
   roster: Player[]; // alla spelare i truppen
   lineup: Lineup;
 }
+
+// ---------- Matchresultat ----------
+
+export type Side = "home" | "away";
+
+export type MatchEventType = "goal" | "save" | "rebound";
+
+/** En händelse i matchen, stämplad med minut (1–60). */
+export interface MatchEvent {
+  minute: number;
+  side: Side; // vilket lag som anföll
+  type: MatchEventType;
+  playerId: PlayerId; // skytten
+  text: string; // läsbar beskrivning
+}
+
+export interface TeamStats {
+  shots: number; // skott på mål (inkl. returer)
+  saves: number; // räddningar som laget gjorde
+  goals: number;
+}
+
+export interface MatchResult {
+  seed: number;
+  homeScore: number;
+  awayScore: number;
+  stats: Record<Side, TeamStats>;
+  events: MatchEvent[];
+}
