@@ -46,9 +46,16 @@ function possessionStrength(skaters: Skater[]): number {
   return avg(skaters.map(({ player: { visible: v } }) => (v.skating + v.vision + v.defense) / 3));
 }
 
-/** Välj en skytt; forwards har dubbelt så stor vikt som backar, och skott-attributet väger in. */
+/** Hur mycket en taktisk roll påverkar viljan att skjuta (1 = ingen påverkan). */
+const SHOOTING_ROLE_WEIGHT: Partial<Record<TacticalRole, number>> = {
+  Sniper: 1.5,
+  OffensiveD: 1.5,
+  StayAtHomeD: 0.3,
+};
+
+/** Välj en skytt: vikten är skott-attributet gånger rollens multiplikator (forwards och backar likställda i övrigt). */
 function pickShooter(skaters: Skater[], rng: Rng): Skater {
-  const weights = skaters.map((s) => s.player.visible.shooting * (s.player.position === "D" ? 0.5 : 1));
+  const weights = skaters.map((s) => s.player.visible.shooting * (SHOOTING_ROLE_WEIGHT[s.role] ?? 1));
   let r = rng() * weights.reduce((a, b) => a + b, 0);
   for (let i = 0; i < skaters.length; i++) {
     r -= at(weights, i);
@@ -96,12 +103,13 @@ export function simulateMatch(homeTeam: Team, awayTeam: Team, seed = 12345): Mat
     stats[side].shots++;
     const scored = rng() < clamp(goalProb, 0.02, 0.6);
     const name = shooter.player.name;
+    const extra = { isRebound, ...(screener && screenedNote ? { screenerId: screener.skater.player.id } : {}) };
     if (scored) {
       stats[side].goals++;
-      events.push({ minute, side, type: "goal", playerId: shooter.player.id, text: `MÅL! ${name} sätter pucken förbi ${goalie.name}${screenedNote}` });
+      events.push({ minute, side, type: "goal", playerId: shooter.player.id, goalieId: goalie.id, ...extra, text: `MÅL! ${name} sätter pucken förbi ${goalie.name}${screenedNote}` });
     } else {
       stats[defSide].saves++;
-      events.push({ minute, side, type: "save", playerId: shooter.player.id, text: `${goalie.name} räddar skottet från ${name}${screenedNote}` });
+      events.push({ minute, side, type: "save", playerId: shooter.player.id, goalieId: goalie.id, ...extra, text: `${goalie.name} räddar skottet från ${name}${screenedNote}` });
     }
     return scored;
   }

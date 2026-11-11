@@ -104,8 +104,11 @@ export interface MatchEvent {
   minute: number;
   side: Side; // vilket lag som anföll
   type: MatchEventType;
-  playerId: PlayerId; // skytten
-  text: string; // läsbar beskrivning
+  playerId: PlayerId; // skytten (vid "rebound": returtagaren)
+  goalieId?: PlayerId; // målvakten som försvarade (mål/räddning)
+  screenerId?: PlayerId; // NetFrontScreen som skymde sikten, om någon
+  isRebound?: boolean; // true om skottet var en retur
+  text: string; // enkel standardbeskrivning (report.ts gör ett mer varierat referat)
 }
 
 export interface TeamStats {
