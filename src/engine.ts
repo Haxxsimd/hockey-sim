@@ -57,10 +57,10 @@ function pickShooter(skaters: Skater[], rng: Rng): Skater {
   return at(skaters, skaters.length - 1);
 }
 
-/** Bästa NetFrontScreen på isen och hans/hennes effekt (0–1), annars undefined. */
-function bestScreener(skaters: Skater[]): { skater: Skater; effect: number } | undefined {
+/** Bästa NetFrontScreen på isen och hans/hennes effekt (0–1), annars undefined. `except` = skytten, som inte kan skymma sitt eget skott. */
+function bestScreener(skaters: Skater[], except?: Skater): { skater: Skater; effect: number } | undefined {
   const screeners = skaters
-    .filter((s) => s.role === "NetFrontScreen")
+    .filter((s) => s.role === "NetFrontScreen" && s !== except)
     .map((s) => ({ skater: s, effect: (s.player.visible.screening + s.player.visible.physical) / 40 }));
   return screeners.sort((a, b) => b.effect - a.effect)[0];
 }
@@ -86,7 +86,7 @@ export function simulateMatch(homeTeam: Team, awayTeam: Team, seed = 12345): Mat
     let screenedNote = "";
 
     // Bonus: skymd sikt när en NetFrontScreen står framför målvakten.
-    const screener = bestScreener(onIce);
+    const screener = bestScreener(onIce, shooter);
     if (screener && rng() < 0.5 * screener.effect + 0.2) {
       goalProb *= 1 + 0.8 * screener.effect;
       screenedNote = ` (skymd sikt av ${screener.skater.player.name})`;
